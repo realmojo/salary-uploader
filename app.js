@@ -12,8 +12,8 @@ const uri = "mongodb://localhost:27017";
 const client = new MongoClient(uri);
 
 console.log("데이터를 읽는 중입니다..");
-const year = 2017;
-const month = "05";
+const year = 2021;
+const month = "11";
 const excelFile = xlsx.readFile(`data/${year}${month}.xlsx`);
 const sheetName = excelFile.SheetNames[0]; // @details 첫번째 시트 정보 추출
 const firstSheet = excelFile.Sheets[sheetName]; // @details 시트의 제목 추출
@@ -23,7 +23,6 @@ await client.connect();
 
 const db = client.db("salaryinfo");
 const companies = db.collection("companies");
-const companyBySalary = db.collection("companyBySalary");
 
 let allCount = await db.collection("companies").count();
 
@@ -34,13 +33,15 @@ const newData = jsonData.map((item) => {
   );
   const yearSalary = monthSalary * 12;
   return {
-    title: item.title ? item.title.trim() : "",
+    title: item.title ? item.title.toString().trim() : "",
     address: item.address ? item.address.trim() : "",
     roadAddress: item.roadAddress ? item.roadAddress.trim() : "",
-    code: item.code ? item.code : "",
+    businessNo: item.businessNo ? Number(item.businessNo) : "",
+    code: item.code ? Number(item.code) : "",
     codeName: item.codeName ? item.codeName : "",
-    monthSalary,
-    yearSalary,
+    // totalEmployer: item.total,
+    // monthSalary,
+    // yearSalary,
     info: [
       {
         year,
@@ -57,46 +58,6 @@ const newData = jsonData.map((item) => {
   };
 });
 
-// const salaryTop100 = async () => {
-//   console.log("연봉 순으로 내림차순 정렬 합니다.");
-//   newData.sort(function (a, b) {
-//     // yearSalary 기준으로 정렬
-//     if (a.info[0].yearSalary > b.info[0].yearSalary) {
-//       return -1;
-//     }
-//     if (a.info[0].yearSalary < b.info[0].yearSalary) {
-//       return 1;
-//     }
-//     return 0;
-//   });
-
-//   console.log("벌크 정보를 구성합니다.");
-//   const insertBulk = newData.map((item, index) => {
-//     return {
-//       insertOne: {
-//         document: {
-//           _id: index + 1,
-//           title: item.title ? item.title.trim() : "",
-//           address: item.address ? item.address.trim() : "",
-//           roadAddress: item.roadAddress ? item.roadAddress.trim() : "",
-//           code: item.code ? item.code : "",
-//           codeName: item.codeName ? item.codeName : "",
-//           year,
-//           month,
-//           totalEmployer: item.info[0].totalEmployer,
-//           joinEmployer: item.info[0].joinEmployer,
-//           leaveEmployer: item.info[0].leaveEmployer,
-//           monthSalary: item.info[0].monthSalary,
-//           yearSalary: item.info[0].yearSalary,
-//           created: moment().format("YYYY-MM-DD HH:mm:ss"),
-//           updated: moment().format("YYYY-MM-DD HH:mm:ss"),
-//         },
-//       },
-//     };
-//   });
-//   await companyBySalary.bulkWrite(insertBulk);
-// };
-
 async function run() {
   try {
     console.log("데이터를 DB에 삽입합니다..");
@@ -112,7 +73,13 @@ async function run() {
     let count = 0;
 
     for (const nextItem of newData) {
-      const index = prevData.findIndex((item) => item.title === nextItem.title);
+      const index = prevData.findIndex((item) => {
+        return (
+          item.title.toString() === nextItem.title &&
+          item.businessNo === nextItem.businessNo &&
+          Number(item.code) === nextItem.code
+        );
+      });
       if (count % 100 === 0) {
         console.log(
           `${count}/${newData.length}번째 데이터 작업중 입니다. ${
@@ -123,7 +90,8 @@ async function run() {
       count += 1;
       if (index !== -1) {
         const prevObject = prevData[index];
-        prevObject.info.push(nextItem.info[0]);
+        // prevObject.info.push(nextItem.info[0]);
+        prevObject.info.unshift(nextItem.info[0]);
         // updateBulk.push({
         //   updateOne: {
         //     filter: {
@@ -146,8 +114,9 @@ async function run() {
               update: {
                 $set: {
                   info: prevObject.info,
-                  monthSalary: nextItem.monthSalary,
-                  yearSalary: nextItem.yearSalary,
+                  // totalEmployer: nextItem.totalEmployer,
+                  // monthSalary: nextItem.monthSalary,
+                  // yearSalary: nextItem.yearSalary,
                   updated: moment().format("YYYY-MM-DD HH:mm:ss"),
                 },
               },
@@ -188,14 +157,4 @@ async function run() {
   }
 }
 
-// async function run2() {
-//   try {
-//     await salaryTop100();
-//   } finally {
-//     console.log(`${year}/${month} 연봉순으로 적재가 끝났습니다.`);
-//     await client.close();
-//   }
-// }
-
 run();
-// run2();
