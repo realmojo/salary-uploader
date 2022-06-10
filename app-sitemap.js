@@ -4,7 +4,7 @@ import moment from "moment";
 import convert from "xml-js";
 
 console.log("시작합니다.");
-const uri = "mongodb://localhost:27017";
+const uri = "mongodb://salaryinfo.co.kr:27017";
 const client = new MongoClient(uri);
 
 await client.connect();
@@ -41,7 +41,6 @@ async function run() {
       loc: {
         _text: `https://salaryinfo.co.kr/category-sitemap.xml`,
       },
-      lastmod: { _text: moment().format("YYYY-MM-DD") },
     });
 
     for (const item of items) {
@@ -50,7 +49,7 @@ async function run() {
           loc: {
             _text: `https://salaryinfo.co.kr/category/${
               item._id.code
-            }/${encodeURI(item._id.codeName)}`,
+            }/${encodeURIComponent(item._id.codeName)}`,
           },
           lastmod: { _text: moment().format("YYYY-MM-DD") },
         });
@@ -67,7 +66,7 @@ async function run() {
     });
 
     d.urlset.url = [];
-
+    console.log("대량의 데이터를 가져옵니다.");
     let currentItems = await companies.find({}).sort({ _id: 1 }).toArray();
 
     let count = 0;
@@ -76,20 +75,19 @@ async function run() {
     for (const item of currentItems) {
       d.urlset.url.push({
         loc: {
-          _text: `https://salaryinfo.co.kr/company/${item._id}/${encodeURI(
-            item.title
-          )}`,
+          _text: `https://salaryinfo.co.kr/company/${
+            item._id
+          }/${encodeURIComponent(item.title)}`,
         },
         lastmod: { _text: moment().format("YYYY-MM-DD") },
       });
 
       count++;
-      if (count % 5000 === 0 || length === count) {
+      if (count % 3000 === 0 || length === count) {
         dIndex.sitemapindex.sitemap.push({
           loc: {
             _text: `https://salaryinfo.co.kr/post-sitemap-${j}.xml`,
           },
-          lastmod: { _text: moment().format("YYYY-MM-DD") },
         });
         result = convert.json2xml(JSON.stringify(d), options);
         fs.writeFile(`./sitemap/post-sitemap-${j}.xml`, result, function (err) {
