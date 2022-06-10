@@ -12,8 +12,8 @@ const uri = "mongodb://localhost:27017";
 const client = new MongoClient(uri);
 
 console.log("데이터를 읽는 중입니다..");
-const year = 2022;
-const month = "03";
+const year = 2021;
+const month = "12";
 const excelFile = xlsx.readFile(`data/${year}${month}.xlsx`);
 const sheetName = excelFile.SheetNames[0]; // @details 첫번째 시트 정보 추출
 const firstSheet = excelFile.Sheets[sheetName]; // @details 시트의 제목 추출
